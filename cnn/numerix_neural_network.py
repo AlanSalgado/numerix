@@ -1,42 +1,68 @@
-# Importar librerías
-# tensorflow: crear y entrenar la red
-# layers: crear capas
-# models: crear modelos
-# numpy: manejar arreglos
+# Importamos las librerías que vamos a usar
 import tensorflow as tf
 from tensorflow.keras import layers, models
 import numpy as np
 
-# cargar dataset MNIST con dígitos del 0-9
-# x_train: imágenes de entrenamiento
-# y_train: etiquetas (qué número es cada imagen)
-# x_test y y_test: datos de prueba
+# Cargamos el dataset MNIST (imágenes de números escritos a mano del 0 al 9)
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
-# Normalizar los pixeles para que pasen de 0-255 a 0-1
+# Pasamos los valores de los pixeles de 0-255 a 0-1 para que sea más fácil entrenar la red
 x_train, x_test = x_train / 255.0, x_test / 255.0
 
-# agregar dimensión extra para que sean (28, 28, 1), no (28, 28)
+# Añadimos una dimensión extra porque la red espera imágenes con "canales" (en este caso en blanco y negro)
 x_train = np.expand_dims(x_train, -1)
 x_test = np.expand_dims(x_test, -1)
 
-# Creación del modelo
+# ---------------------------
+# CREACIÓN DEL MODELO
+# ---------------------------
 model = models.Sequential([
-    layers.Conv2D(32, (3,3), activation='relu', input_shape=(28,28,1)),     # Capa de entrada con 32 neuronas
-    layers.MaxPooling2D((2,2)),     # Reducir dimesión de la imagen
-    layers.Conv2D(64, (3,3), activation='relu'),    # Primer capa intermedia con 64 neuronas
+    # Primera capa: detecta patrones pequeños en la imagen
+    layers.Conv2D(32, (3,3), activation='relu', input_shape=(28,28,1)),
+    # Reduce la información pero mantiene lo más importante
+    layers.MaxPooling2D((2,2)),
+    
+    # Segunda capa: detecta patrones más complejos
+    layers.Conv2D(64, (3,3), activation='relu'),
+    layers.MaxPooling2D((2,2)),
+
+    # Prepara los datos en una sola lista para poder conectarlos a la parte final
     layers.Flatten(),
-    layers.Dense(64, activation='relu'),            # Segunda capa intermedia con 64 neuronas
-    layers.Dense(10, activation='softmax')          # Capa de salida con 10 neuronas (1 por cada dígito)
+
+    # Capa intermedia con varias neuronas que ayudan a tomar decisiones
+    layers.Dense(128, activation='relu'),
+    # Apaga algunas neuronas al azar para evitar que el modelo "memorice"
+    layers.Dropout(0.3),
+
+    # Otra capa intermedia
+    layers.Dense(64, activation='relu'),
+    layers.Dropout(0.3),
+
+    # Capa de salida: 10 opciones (los números del 0 al 9)
+    layers.Dense(10, activation='softmax')
 ])
 
-# compilar modelo de la red. 
-# adam es el algoritmo que ajusta los pesos de la red
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+# ---------------------------
+# CONFIGURAMOS EL ENTRENAMIENTO
+# ---------------------------
+model.compile(
+    optimizer='adam',                        # Método para aprender
+    loss='sparse_categorical_crossentropy',  # Cómo calcula el error
+    metrics=['accuracy']                     # Qué mide (qué tan bien acierta)
+)
 
-# entrenar el modelo con 5 vueltas completas al dataset
-model.fit(x_train, y_train, epochs=5, validation_data=(x_test, y_test))
-print("Modelo entrenado!")
+# ---------------------------
+# ENTRENAMOS EL MODELO
+# ---------------------------
+model.fit(
+    x_train,
+    y_train,
+    epochs=20,               # Número de repeticiones del entrenamiento
+    validation_data=(x_test, y_test)  # Datos para comprobar cómo va aprendiendo
+)
+print("modelo entrenado")
 
-# Guardar modelo entrenado
-model.save("cnn/trained_model.h5")
+# ---------------------------
+# GUARDAMOS EL MODELO
+# ---------------------------
+model.save("trained_model.h5")
